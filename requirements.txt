@@ -1,0 +1,11 @@
+# Core dependency for document conversion
+markitdown[all]
+
+# OpenAI API for LLM-powered image descriptions
+openai
+
+# Progress bar for batch processing
+tqdm
+
+# Environment variable management for API keys
+python-dotenv
