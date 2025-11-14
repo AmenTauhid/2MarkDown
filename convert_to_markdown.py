@@ -46,7 +46,7 @@ def setup_markitdown(use_llm: bool = True) -> MarkItDown:
     """
     if use_llm:
         api_key = os.getenv('OPENAI_API_KEY')
-        model = os.getenv('OPENAI_MODEL', 'gpt-4o')
+        model = os.getenv('OPENAI_MODEL', 'gpt-5')
 
         if not api_key:
             logger.warning("OPENAI_API_KEY not found in environment. Image descriptions will be disabled.")
@@ -88,6 +88,61 @@ def find_office_files(directory: Path, extensions: Tuple[str, ...] = ('.docx', '
     return sorted(files)
 
 
+def normalize_to_ascii(text: str) -> str:
+    """
+    Normalize Unicode characters to their basic ASCII equivalents.
+
+    Args:
+        text: Input text with potential Unicode characters
+
+    Returns:
+        Text with Unicode characters replaced by ASCII equivalents
+    """
+    # Define character replacements
+    replacements = {
+        # Curly quotes to straight quotes
+        '\u2018': "'",  # Left single quotation mark
+        '\u2019': "'",  # Right single quotation mark
+        '\u201A': "'",  # Single low-9 quotation mark
+        '\u201B': "'",  # Single high-reversed-9 quotation mark
+        '\u201C': '"',  # Left double quotation mark
+        '\u201D': '"',  # Right double quotation mark
+        '\u201E': '"',  # Double low-9 quotation mark
+        '\u201F': '"',  # Double high-reversed-9 quotation mark
+        # Dashes
+        '\u2013': '-',  # En dash
+        '\u2014': '--', # Em dash
+        '\u2015': '--', # Horizontal bar
+        # Spaces
+        '\u00A0': ' ',  # Non-breaking space
+        '\u2000': ' ',  # En quad
+        '\u2001': ' ',  # Em quad
+        '\u2002': ' ',  # En space
+        '\u2003': ' ',  # Em space
+        '\u2004': ' ',  # Three-per-em space
+        '\u2005': ' ',  # Four-per-em space
+        '\u2006': ' ',  # Six-per-em space
+        '\u2007': ' ',  # Figure space
+        '\u2008': ' ',  # Punctuation space
+        '\u2009': ' ',  # Thin space
+        '\u200A': ' ',  # Hair space
+        # Other punctuation
+        '\u2026': '...', # Horizontal ellipsis
+        '\u2022': '*',   # Bullet
+        '\u2023': '>',   # Triangular bullet
+        '\u2032': "'",   # Prime
+        '\u2033': '"',   # Double prime
+        '\u2035': "'",   # Reversed prime
+        '\u2036': '"',   # Reversed double prime
+    }
+
+    # Apply replacements
+    for unicode_char, ascii_char in replacements.items():
+        text = text.replace(unicode_char, ascii_char)
+
+    return text
+
+
 def convert_file(md: MarkItDown, input_file: Path, output_file: Path) -> bool:
     """
     Convert a single file to Markdown.
@@ -104,9 +159,12 @@ def convert_file(md: MarkItDown, input_file: Path, output_file: Path) -> bool:
         logger.info(f"Converting: {input_file}")
         result = md.convert(str(input_file))
 
+        # Normalize Unicode characters to ASCII
+        normalized_content = normalize_to_ascii(result.text_content)
+
         # Write the converted Markdown to file
         with open(output_file, 'w', encoding='utf-8') as f:
-            f.write(result.text_content)
+            f.write(normalized_content)
 
         logger.info(f"Successfully converted to: {output_file}")
         return True
